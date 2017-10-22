@@ -130,7 +130,7 @@ public class Plane {
                 if (!halty && _atRow + 1 == 2)
                     System.out.println("Y is at 2");
                 if (halty){
-                    System.out.println("halt y");
+
                     ShowMarker(_atRow, _atCol, false);
                 }
                 else {
