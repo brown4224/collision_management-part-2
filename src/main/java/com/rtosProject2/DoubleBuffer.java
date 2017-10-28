@@ -1,4 +1,4 @@
-package com.jeff;
+package com.rtosProject2;
 
 import java.util.LinkedList;
 import java.util.concurrent.Semaphore;
@@ -20,6 +20,7 @@ public class DoubleBuffer<T> {
     private final Semaphore _overallSem = new Semaphore(1);
     private final Semaphore _inboundSem = new Semaphore(1);
     private final Semaphore _outboundSem = new Semaphore(1);
+    private final Semaphore _tryPullSem = new Semaphore(1);
     private boolean _startShutdown = false;
     private boolean _isShutdown = false;
     private LinkedList<T> _inboundQueue;

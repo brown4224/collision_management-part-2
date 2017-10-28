@@ -1,6 +1,5 @@
-package com.jeff;
+package com.rtosProject2;
 
-//import org.omg.CORBA.Object;
 
 import java.util.concurrent.Callable;
 
@@ -9,8 +8,17 @@ public class CollisionManagement implements Callable<Integer>{
     private int halt_plane;
     private int look_ahead;
 
-    public CollisionManagement(Object[][] state, int halt_plane,  int look_ahead) {
-        this.state = clone_state(state);
+    public CollisionManagement(Positions positions, int halt_plane,  int look_ahead) {
+
+        Object[][] state = new Object[positions.size()][3];
+        for (int pos = 0; pos < positions.size(); pos++) {
+            Position position = positions.get(pos);
+            state[pos][0] = position.train();
+            state[pos][1] = position.row();
+            state[pos][2] = position.col();
+        }
+
+        this.state = state;
         this.halt_plane = halt_plane;
         this.look_ahead = look_ahead;
     }
@@ -20,7 +28,7 @@ public class CollisionManagement implements Callable<Integer>{
         int counter = 0;
 
         try{
-            for (int i = 0; i< look_ahead; i++){
+            for (int i = 0; i < look_ahead; i++){
 
                 // IF collision:  We are done looking ahead
                 if(     (state[0][1] == state[1][1] && state[0][2] == state[1][2]) ||
@@ -47,12 +55,5 @@ public class CollisionManagement implements Callable<Integer>{
             e.printStackTrace();
         }
         return counter;
-    }
-
-    private Object[][] clone_state(Object[][] state){
-        Object[][] clone = new Object [state.length][];
-        for (int i = 0; i < state.length; i++ )
-            clone[i] = state[i].clone();
-        return clone;
     }
 }

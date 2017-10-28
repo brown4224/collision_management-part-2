@@ -1,4 +1,4 @@
-package com.jeff;
+package com.rtosProject2;
 
 import com.googlecode.lanterna.TerminalSize;
 import com.googlecode.lanterna.TextColor;

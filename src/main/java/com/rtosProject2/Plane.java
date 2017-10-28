@@ -1,4 +1,4 @@
-package com.jeff;
+package com.rtosProject2;
 
 import com.googlecode.lanterna.TextColor;
 import com.googlecode.lanterna.gui2.Label;
@@ -21,8 +21,8 @@ public class Plane {
     public static final int rows = 8;
     public static final int cols = 7;
     public static boolean haltX = false;
-    public static boolean halty = false;
-    public static boolean haltz = false;
+    public static boolean haltY = false;
+    public static boolean haltZ = false;
 
     /**
      * Enum used to tell the plane which movement operation to perform. For example,
@@ -127,9 +127,9 @@ public class Plane {
 
                 break;
             case Y:
-                if (!halty && _atRow + 1 == 2)
+                if (!haltY && _atRow + 1 == 2)
                     System.out.println("Y is at 2");
-                if (halty){
+                if (haltY){
 
                     ShowMarker(_atRow, _atCol, false);
                 }
@@ -141,7 +141,7 @@ public class Plane {
 
                 break;
             case Z:
-                if(haltz){
+                if(haltZ){
                     System.out.println("halt z");
                     ShowMarker(_atRow, _atCol, false);
 
