@@ -225,13 +225,13 @@ public class Plane {
         Label label = GetLabelInPlane(row, col);
         marker = String.format(labelFormat, marker.equals("") ? _marker : marker);
         marker = marker.length() > labelFormat.length() ? marker.trim() : marker;
-        label.setText(marker);
-        SetOccupiedFormat(label, isCollision);
         if (_movement != Movement.Set && _movement != Movement.Random) {
             SetEmptyFormat(_atRow, _atCol);
             _atRow = row;
             _atCol = col;
         }
+        label.setText(marker);
+        SetOccupiedFormat(label, isCollision);
     }
 
     /**
