@@ -1,11 +1,7 @@
-package com.jeff;
+package com.rtosProject2;
 
 import javax.sound.sampled.LineUnavailableException;
 import java.io.IOException;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
 
 /**
  * CLASS ProcessC
@@ -18,26 +14,31 @@ import java.util.concurrent.Future;
  */
 public class ProcessC extends ProcessBase {
 
-    private final DoubleBuffer<Object[][]> _bufferCD;
+    private final DoubleBuffer<Message> _bufferCD;
+    private final int _delayMs;
     private Plane _statusPlane;
     private Display _display;
     private int _second = 2;
     private int _collisions = 0;
-    private ExecutorService pool = Executors.newFixedThreadPool(4);
 
 //    private ExecutorService executor = Executors.newFixedThreadPool(4);
 
     /**
      * Constructor that accepts the the bufferCD summary data
      *
+     * @param name
+     * @param delayMs
      * @param bufferCD
      * @param display
      * @param console
      */
-    public ProcessC(DoubleBuffer<Object[][]> bufferCD,
+    public ProcessC(String name,
+                    int delayMs,
+                    DoubleBuffer<Message> bufferCD,
                     Display display,
                     Console console) {
-        super(console);
+        super(name, console);
+        _delayMs = delayMs;
         _bufferCD = bufferCD;
         _display = display;
         _statusPlane = display.GetStatusPlane();
@@ -53,17 +54,18 @@ public class ProcessC extends ProcessBase {
 
         ConsoleWriteLine("PROCESS C STARTED\r\n");
 
-        Object[][] state;
+        Message message;
 
         while (!_bufferCD.isShutdown()) {
-            state = _bufferCD.pull();
-
-            control_center(state);
-
-            System.out.println("C pulled: " + state.length);
+            message = _bufferCD.pull();
+            Positions positions = (Positions) message.getPayload();
+            System.out.println("C pulled " + positions.size() + " positions from buffer CD");
             ConsoleWriteLine("SECOND " + _second);
-            OutputState(state);
-            ShowState(state);
+            OutputState(positions);
+            ShowState(positions);
+
+            SendTestMessageToA(_second);
+
             _second++;
         }
         String finMsg = "DONE. " + _collisions + " collisions occurred over " + _display.Seconds + " seconds.";
@@ -73,14 +75,25 @@ public class ProcessC extends ProcessBase {
         ConsoleWait();
     }
 
+    private void SendTestMessageToA(int second) {
+        String testMsg = "Process " + name() + " is at second " + second;
+        Message message = new Message<>(Message.PayloadType.Test, testMsg);
+
+        System.out.println(
+                "*** [" + message.getPayloadType() + "] MAIL SENT ON [" + name() + "] --- [" + testMsg + "]");
+
+        sendMessage(message);
+    }
+
     /**
      * Accepts the summary array and writes the data to the console.
      *
-     * @param state
+     * @param positions
      */
-    private void OutputState(Object[][] state) {
-        for (int plane = 0; plane < state.length; plane++) {
-            ConsoleWriteLine(state[plane][0] + " | " + state[plane][1] + " | " + state[plane][2]);
+    private void OutputState(Positions positions) {
+        for (int idx = 0; idx < positions.size(); idx++) {
+            Position position = positions.get(idx);
+            ConsoleWriteLine(position.train() + " | " + position.row() + " | " + position.col());
         }
         ConsoleWriteLine();
         try {
@@ -90,61 +103,22 @@ public class ProcessC extends ProcessBase {
         }
     }
 
-    private void control_center(Object[][] state) {
-        try {
-            int offset = 2;  // difference from communication
-            int look_ahead = Plane.rows + offset;
-
-            Callable<Integer> base_line = new CollisionManagement(state, -1, look_ahead);
-            Callable<Integer> callable_x = new CollisionManagement(state, 0, look_ahead);
-            Callable<Integer> callable_y = new CollisionManagement(state, 1, look_ahead);
-            Callable<Integer> callable_z = new CollisionManagement(state, 2, look_ahead);
-
-            Future<Integer> future_baseline = pool.submit(base_line);
-            Future<Integer> future_halt_x = pool.submit(callable_x);
-            Future<Integer> future_halt_y = pool.submit(callable_y);
-            Future<Integer> future_halt_z = pool.submit(callable_z);
-
-            final int collision = future_baseline.get();
-            if (collision >= look_ahead) {
-                future_halt_x.cancel(true);
-                future_halt_y.cancel(true);
-                future_halt_z.cancel(true);
-            } else {
-                final int halt_x = future_halt_x.get();
-                final int halt_y = future_halt_y.get();
-                final int halt_z = future_halt_z.get();
-
-                if (halt_x > collision && halt_x >= halt_y && halt_x >= halt_z)
-                    Plane.haltX = true;
-                if (halt_y > collision && halt_y > halt_x && halt_y >= halt_z) {
-                    Plane.halty = true;
-                    System.out.println("C halts Y");
-                }
-                if (halt_z > collision && halt_z > halt_x && halt_z > halt_y)
-                    Plane.haltz = true;
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-    }
-
-
     /**
      * Accepts the summary array and determines if a collision occurred.
      * If so, displays a red marker in the composite grid view and plays a short beep.
      * All information is written to the tonsole.
      *
-     * @param state
+     * @param positions
      */
-    private void ShowState(Object[][] state) {
+    private void ShowState(Positions positions) {
         _statusPlane.ResetDisplay();
         boolean noCollision = true;
         _display.UpdateStatus("Process C Second " + _second);
-        for (int plane = 0; plane < state.length; plane++) {
-            String marker = (String) state[plane][0];
-            int row = (int) state[plane][1];
-            int col = (int) state[plane][2];
+        for (int pos = 0; pos < positions.size(); pos++) {
+            Position position = positions.get(pos);
+            String marker = position.train();
+            int row = position.row();
+            int col = position.col();
             String currentMarker = _statusPlane.GetMarker(row, col) + marker;
 
             //if marker is longer than 1 character, then two or more trains
@@ -152,7 +126,7 @@ public class ProcessC extends ProcessBase {
             boolean collision = currentMarker.length() > 1;
             _statusPlane.ShowMarker(row, col, collision, currentMarker);
 
-            //if collision occured, play a sound and note the collision time/position/trains
+            //if collision occurred, play a sound and note the collision time/position/trains
             //in the log as directed by the assignment.
             if (collision) {
                 try {

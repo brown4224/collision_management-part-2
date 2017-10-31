@@ -1,4 +1,4 @@
-package com.jeff;
+package com.rtosProject2;
 
 import java.io.IOException;
 
@@ -25,33 +25,36 @@ public class Gui {
         Console console = new Console();
         Display display = ConfigureDisplay();
 
-        DoubleBuffer<String[][][]> bufferAB = new DoubleBuffer<>(1);
-        DoubleBuffer<Object[][]> bufferCD = new DoubleBuffer<>(1);
+        DoubleBuffer<Message> bufferAB = new DoubleBuffer<>(1);
+        DoubleBuffer<Message> bufferCD = new DoubleBuffer<>(1);
 
         //TO SINGLE STEP, SET delayMs TO 0.
-        int delayMs = 1000;
+        int delayMs = 5;
         //delayMs = 0; //set to 0 to single step
 
         //ProcessC takes the data from bufferCD as it is available
         //and determines if a collision occurred
-        ProcessC processC = new ProcessC(bufferCD, display, console);
+        ProcessC processC = new ProcessC("ProcessC", delayMs, bufferCD, display, console);
         processC.start();
 
         //ProcessB takes the data from bufferAB as it is available
         //and pushes it to bufferCD
-        ProcessB processB = new ProcessB(bufferAB, bufferCD, console);
+        ProcessB processB = new ProcessB("ProcessB", bufferAB, bufferCD, console);
         processB.start();
 
         //ProcessA moves each train and submits their positions to bufferAB
-        ProcessA processA = new ProcessA(delayMs, bufferAB, display, console);
+        ProcessA processA = new ProcessA("ProcessA", delayMs, bufferAB, display, console);
         processA.start();
+
+        ProcessMsgShuttle processmsgShuttle = new ProcessMsgShuttle("Shuttle C to A", processC, processA, delayMs, console);
+        processmsgShuttle.start();
 
         //start all process threads, then wait from them all to stop
         processA.join();
         processB.join();
         processC.join();
+        processmsgShuttle.join();
         console.WriteLine("DONE");
-
     }
 
     /**
