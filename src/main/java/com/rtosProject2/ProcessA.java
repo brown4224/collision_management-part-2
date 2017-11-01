@@ -120,27 +120,49 @@ public class ProcessA extends ProcessBase {
         return false;
     }
 
+    /**
+     * This process uses the Collision Management class to create sub threads of the process
+     * High level the algorithm will take a base line of all the trains moving
+     * If their is no collision, then nothing to do, the other threads are cancelled.
+     *
+     * If there is a collision each thread returns a distance.
+     * Some comparisons are made to see which train to halt based on which distance was greatest
+     *
+     * Low level:  The class uses the callable class and registers a future.  This allows for non-blocking
+     * code and allows the program to execute.  The only blocking code is when the results are needed before the program
+     * can proceed.
+     *
+     * The Class uses a thread pool and returns system resources when not used.
+     **/
     private void preventCollision(Positions positions) {
         try {
+
+            // How far we want to look ahead
             int offset = 2;  // difference from communication
             int look_ahead = Plane.rows + offset;
 
+            // Uses four instances of the callable class
             Callable<Integer> base_line = new CollisionManagement(positions, -1, look_ahead);
             Callable<Integer> callable_x = new CollisionManagement(positions, 0, look_ahead);
             Callable<Integer> callable_y = new CollisionManagement(positions, 1, look_ahead);
             Callable<Integer> callable_z = new CollisionManagement(positions, 2, look_ahead);
 
+            // This is a java thing...  Future is non-blocking
             Future<Integer> future_baseline = pool.submit(base_line);
             Future<Integer> future_halt_x = pool.submit(callable_x);
             Future<Integer> future_halt_y = pool.submit(callable_y);
             Future<Integer> future_halt_z = pool.submit(callable_z);
 
+            // If baseline is desired, cancel other thread
             final int collision = future_baseline.get();
             if (collision >= look_ahead) {
                 future_halt_x.cancel(true);
                 future_halt_y.cancel(true);
                 future_halt_z.cancel(true);
-            } else {
+            }
+
+            // Else:  calculate which one to use
+            else {
                 final int halt_x = future_halt_x.get();
                 final int halt_y = future_halt_y.get();
                 final int halt_z = future_halt_z.get();

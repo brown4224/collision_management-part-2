@@ -3,11 +3,20 @@ package com.rtosProject2;
 
 import java.util.concurrent.Callable;
 
+/**
+ * This is an implementation of the look ahead algorithm
+ * An overview of the algorithm can be found in Process A
+ *
+ * This class implements the Callable class of Java.
+ * This allows a thread to return an object (integer) when is is released
+ */
 public class CollisionManagement implements Callable<Integer>{
     private Object[][] state;
     private int halt_plane;
     private int look_ahead;
 
+
+    // Constructor
     public CollisionManagement(Positions positions, int halt_plane,  int look_ahead) {
 
         Object[][] state = new Object[positions.size()][3];
@@ -23,6 +32,18 @@ public class CollisionManagement implements Callable<Integer>{
         this.look_ahead = look_ahead;
     }
 
+
+    /**
+     * Uses a FOR loop for deterministic reasons.
+     * Recursion has been avoided
+     *
+     * Moves the trains based on their fixed movements
+     * for the desired duration
+     *
+     * When the sub-algorithm is completed, the distance is returned.
+     *
+     * @return Integer
+     */
     @Override
     public Integer call(){
         int counter = 0;
